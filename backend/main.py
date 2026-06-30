@@ -33,6 +33,7 @@ from routes.voice import router as voice_router
 from routes.internal import router as internal_router
 from routes.insights import router as insights_router
 from routes.notifications import router as notifications_router
+from routes.calendar_route import router as calendar_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -75,6 +76,7 @@ app.include_router(voice_router, tags=["voice"])
 app.include_router(internal_router, tags=["internal"])
 app.include_router(insights_router, tags=["insights"])
 app.include_router(notifications_router, tags=["notifications"])
+app.include_router(calendar_router, tags=["calendar"])
 
 # ---------------------------------------------------------------------------
 # Health / hello-world — Phase 0 smoke test

@@ -18,7 +18,10 @@ from google.genai import types as genai_types
 
 from tools.firestore_tools import list_tasks, log_agent_action
 from services.firestore_client import get_db
+from agents.model_config import get_model
+
 logger = logging.getLogger(__name__)
+APP_NAME = "lifesaver"logger = logging.getLogger(__name__)
 APP_NAME = "lifesaver"
 
 
