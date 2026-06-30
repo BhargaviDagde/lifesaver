@@ -6,9 +6,23 @@ Mounts custom routes + ADK agent app on Cloud Run (Python 3.12)
 import logging
 import os
 
-# Load .env for local development (no-op in Cloud Run where env vars are set directly)
+# Load .env for local development (no-op in production where env vars are set directly)
 from dotenv import load_dotenv
 load_dotenv()
+
+# Initialize Firebase Admin SDK at startup so auth.verify_id_token() works
+# immediately without waiting for a Firestore call to trigger lazy init.
+import firebase_admin
+from firebase_admin import credentials as fb_credentials
+
+if not firebase_admin._apps:
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "lifesaver-501004")
+    sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if sa_path and os.path.exists(sa_path):
+        cred = fb_credentials.Certificate(sa_path)
+    else:
+        cred = fb_credentials.ApplicationDefault()
+    firebase_admin.initialize_app(cred, {"projectId": project_id})
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

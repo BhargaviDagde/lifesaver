@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import {
   subscribeTasks,
-  createTaskDirect,
   updateTaskStatus,
   deleteTask,
   Task,
@@ -54,21 +53,15 @@ export default function DashboardPage() {
     try {
       const result = await createTask(title, "manual");
       if (result.status === "needs_clarification") {
-        setError(`Life Saver needs a bit more info: ${result.message}`);
+        setError(`Need more info: ${result.message}`);
       } else {
         setTaskInput("");
         inputRef.current?.focus();
       }
-    } catch {
-      // Fallback: write directly to Firestore so the UI still works
-      // even if the backend/agents are unavailable
-      try {
-        await createTaskDirect(user.uid, { title });
-        setTaskInput("");
-        inputRef.current?.focus();
-      } catch {
-        setError("Couldn't add task. Try again.");
-      }
+    } catch (err) {
+      console.error("Backend task creation failed:", err);
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setError(`Couldn't add task: ${msg}. Is the backend running?`);
     } finally {
       setSubmitting(false);
     }
