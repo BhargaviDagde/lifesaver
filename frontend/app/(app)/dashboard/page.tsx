@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   subscribeTasks,
   updateTaskStatus,
@@ -18,12 +20,24 @@ export default function DashboardPage() {
   const [taskInput, setTaskInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gmailConnected, setGmailConnected] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Real-time task subscription
   useEffect(() => {
     if (!user) return;
     const unsub = subscribeTasks(user.uid, setTasks);
+    return unsub;
+  }, [user]);
+
+  // Listen to user profile for Gmail connected status
+  useEffect(() => {
+    if (!user) return;
+    const unsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (snap.exists()) {
+        setGmailConnected(snap.data().gmailConnected ?? false);
+      }
+    });
     return unsub;
   }, [user]);
 
@@ -187,15 +201,22 @@ export default function DashboardPage() {
       ) : (
         <section aria-labelledby="inbox-heading">
           <SectionHeader id="inbox-heading" label="Suggested from email" />
-          <EmptyState
-            title="No suggestions yet."
-            body="Connect Gmail in Settings and Life Saver will surface deadline emails here for one-tap approval."
-            action={
-              <Link href="/settings" className="text-[#2D7DD2] text-sm font-medium hover:underline">
-                Connect Gmail →
-              </Link>
-            }
-          />
+          {gmailConnected ? (
+            <EmptyState
+              title="No email suggestions yet."
+              body="Life Saver scans your inbox every 20 minutes. If you have unread emails mentioning deadlines, they'll appear here for one-tap approval."
+            />
+          ) : (
+            <EmptyState
+              title="No suggestions yet."
+              body="Connect Gmail in Settings and Life Saver will surface deadline emails here for one-tap approval."
+              action={
+                <Link href="/settings" className="text-[#2D7DD2] text-sm font-medium hover:underline">
+                  Connect Gmail →
+                </Link>
+              }
+            />
+          )}
         </section>
       )}
     </div>
