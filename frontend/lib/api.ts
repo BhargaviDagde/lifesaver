@@ -108,6 +108,7 @@ export interface InsightsResponse {
   onTimeRate: number;
   currentStreak: number;
   categoryBreakdown: Record<string, { done: number; total: number }>;
+  dailyCompletions: { date: string; label: string; count: number }[];
   recap: string;
   generatedAt: string;
 }

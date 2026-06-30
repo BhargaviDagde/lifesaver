@@ -21,7 +21,6 @@ from services.firestore_client import get_db
 from agents.model_config import get_model
 
 logger = logging.getLogger(__name__)
-APP_NAME = "lifesaver"logger = logging.getLogger(__name__)
 APP_NAME = "lifesaver"
 
 
@@ -76,6 +75,7 @@ async def run_insights(uid: str, days: int = 30) -> dict:
         "currentStreak": streak,
         "categoryBreakdown": category_breakdown,
         "windowDays": days,
+        "dailyCompletions": _daily_completions(all_tasks, days),
     }
 
     # --- Generate Gemini recap ---
@@ -184,3 +184,25 @@ def _compute_streak(completed_dates: list[datetime]) -> int:
         elif d < expected:
             break
     return streak
+
+
+def _daily_completions(tasks: list[dict], days: int = 30) -> list[dict]:
+    """Return daily completion counts for the last `days` days (for chart)."""
+    now = datetime.now(timezone.utc)
+    counts: dict = defaultdict(int)
+
+    for task in tasks:
+        if task.get("status") == "done":
+            dt = _to_dt(task.get("updatedAt"))
+            if dt and (now - dt).days <= days:
+                counts[dt.date().isoformat()] += 1
+
+    result = []
+    for i in range(days - 1, -1, -1):
+        day = (now - timedelta(days=i)).date()
+        result.append({
+            "date": day.isoformat(),
+            "label": day.strftime("%b %d"),
+            "count": counts.get(day.isoformat(), 0),
+        })
+    return result
