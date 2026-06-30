@@ -199,56 +199,42 @@ export default function DashboardPage() {
       </section>
 
       {/* Gmail inbox suggestions */}
-      {inboxTasks.length > 0 ? (
-        <section aria-labelledby="inbox-heading">
-          <SectionHeader id="inbox-heading" label="Suggested from email" />
+      {/* Gmail inbox suggestions */}
+      <section aria-labelledby="inbox-heading">
+        <div className="flex items-center justify-between mb-3">
+          <h2 id="inbox-heading" className="text-xs font-semibold uppercase tracking-wider text-[#6B7A8D]">
+            Suggested from email
+          </h2>
+          {gmailConnected && (
+            <button
+              onClick={handleScanGmail}
+              disabled={scanning}
+              className="text-xs text-[#2D7DD2] font-medium hover:underline disabled:opacity-50 flex items-center gap-1"
+            >
+              {scanning ? (
+                <><span className="w-3 h-3 border border-[#2D7DD2] border-t-transparent rounded-full animate-spin" />Scanning…</>
+              ) : "Scan now"}
+            </button>
+          )}
+        </div>
+        {scanMsg && <p className="text-xs text-[#38B2AC] mb-2">{scanMsg}</p>}
+
+        {inboxTasks.length > 0 ? (
           <div className="space-y-2">
             {inboxTasks.map((t) => (
-              <TaskCard
-                key={t.id}
-                task={t}
-                onMarkDone={() => handleMarkDone(t.id)}
-                onDelete={() => handleDelete(t.id)}
-                showApprove
-              />
+              <TaskCard key={t.id} task={t} onMarkDone={() => handleMarkDone(t.id)} onDelete={() => handleDelete(t.id)} showApprove />
             ))}
           </div>
-        </section>
-      ) : (
-        <section aria-labelledby="inbox-heading">
-          <SectionHeader id="inbox-heading" label="Suggested from email" />
-          {gmailConnected ? (
-            <EmptyState
-              title="No email suggestions yet."
-              body="Life Saver scans your inbox every 20 minutes. Click below to scan now."
-              action={
-                <button
-                  onClick={handleScanGmail}
-                  disabled={scanning}
-                  className="btn-primary text-sm mt-1"
-                >
-                  {scanning ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Scanning…
-                    </span>
-                  ) : "Scan inbox now"}
-                </button>
-              }
-            />
-          ) : (
-            <EmptyState
-              title="No suggestions yet."
-              body="Connect Gmail in Settings and Life Saver will surface deadline emails here for one-tap approval."
-              action={
-                <Link href="/settings" className="text-[#2D7DD2] text-sm font-medium hover:underline">
-                  Connect Gmail →
-                </Link>
-              }
-            />
-          )}
-        </section>
-      )}
+        ) : gmailConnected ? (
+          <EmptyState title="No email suggestions yet." body="Click 'Scan now' to check your inbox for deadline emails." />
+        ) : (
+          <EmptyState
+            title="No suggestions yet."
+            body="Connect Gmail in Settings and Life Saver will surface deadline emails here for one-tap approval."
+            action={<Link href="/settings" className="text-[#2D7DD2] text-sm font-medium hover:underline">Connect Gmail →</Link>}
+          />
+        )}
+      </section>
 
       {scanMsg && (
         <p className="text-xs text-[#38B2AC] text-center py-2 animate-fade-in">{scanMsg}</p>
