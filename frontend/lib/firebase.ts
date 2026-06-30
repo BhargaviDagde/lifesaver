@@ -9,7 +9,6 @@ import { getAuth, GoogleAuthProvider, Auth } from "firebase/auth";
 import {
   getFirestore,
   Firestore,
-  enableIndexedDbPersistence,
 } from "firebase/firestore";
 import { getMessaging, Messaging, isSupported } from "firebase/messaging";
 
