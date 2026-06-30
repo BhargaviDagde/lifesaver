@@ -1,0 +1,87 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------------------
+    // Helper functions
+    // -----------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isValidTaskStatus(status) {
+      return status in [
+        'inbox', 'scheduled', 'in_progress', 'done', 'at_risk', 'missed', 'dismissed'
+      ];
+    }
+
+    function isValidTaskCategory(category) {
+      return category in [
+        'assignment', 'bill', 'interview', 'meeting', 'other'
+      ];
+    }
+
+    // -----------------------------------------------------------------------
+    // User profile document
+    // Authenticated users can only read/write their own profile.
+    // -----------------------------------------------------------------------
+    match /users/{uid} {
+      allow read, write: if isSignedIn() && isOwner(uid);
+
+      // ---------------------------------------------------------------------
+      // OAuth tokens — DENY ALL client access regardless of uid match.
+      // Backend uses Admin SDK (bypasses rules). This is intentional.
+      // ---------------------------------------------------------------------
+      match /oauth_tokens/{document=**} {
+        allow read, write: if false;
+      }
+
+      // ---------------------------------------------------------------------
+      // Tasks — owner can read and write their own tasks.
+      // ---------------------------------------------------------------------
+      match /tasks/{taskId} {
+        allow read: if isSignedIn() && isOwner(uid);
+
+        allow create: if isSignedIn() && isOwner(uid)
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 200;
+
+        allow update: if isSignedIn() && isOwner(uid);
+
+        allow delete: if isSignedIn() && isOwner(uid);
+      }
+
+      // ---------------------------------------------------------------------
+      // Activity log — owner can read; only backend writes (but we allow
+      // owner reads so the /activity page can use client SDK + onSnapshot).
+      // ---------------------------------------------------------------------
+      match /activity_log/{logId} {
+        allow read: if isSignedIn() && isOwner(uid);
+        // Writes come from backend via Admin SDK — deny direct client writes
+        allow write: if false;
+      }
+
+      // ---------------------------------------------------------------------
+      // Insights snapshots — owner can read; backend writes.
+      // ---------------------------------------------------------------------
+      match /insights_snapshots/{period} {
+        allow read: if isSignedIn() && isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Deny everything else
+    // -----------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
