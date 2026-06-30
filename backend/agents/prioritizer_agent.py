@@ -14,18 +14,15 @@ Model: gemini-3.5-flash
 
 from datetime import datetime, timezone
 from google.adk.agents import LlmAgent
-
-MODEL = "gemini-3.5-flash"
+from agents.model_config import get_model
 
 
 def build_prioritizer_agent() -> LlmAgent:
-    """Return a configured Prioritizer LlmAgent."""
-
     now_iso = datetime.now(timezone.utc).isoformat()
 
     return LlmAgent(
         name="PrioritizerAgent",
-        model=MODEL,
+        model=get_model(),
         description="Scores task urgency and importance, producing a 0-100 priority score.",
         output_key="priority_result",
         instruction=f"""You score task priority. Current UTC time: {now_iso}

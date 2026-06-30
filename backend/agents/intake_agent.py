@@ -10,8 +10,7 @@ Model: gemini-3.5-flash (confirmed June 2026)
 import json
 from datetime import datetime, timezone
 from google.adk.agents import LlmAgent
-
-MODEL = "gemini-3.5-flash"
+from agents.model_config import get_model
 
 
 def build_intake_agent() -> LlmAgent:
@@ -21,7 +20,7 @@ def build_intake_agent() -> LlmAgent:
 
     return LlmAgent(
         name="IntakeAgent",
-        model=MODEL,
+        model=get_model(),
         description="Parses free-text task descriptions into structured JSON.",
         output_key="parsed_task",
         instruction=f"""You parse task descriptions into structured JSON. Today's date is {now_iso}.

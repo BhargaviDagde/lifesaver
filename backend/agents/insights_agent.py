@@ -18,9 +18,7 @@ from google.genai import types as genai_types
 
 from tools.firestore_tools import list_tasks, log_agent_action
 from services.firestore_client import get_db
-
 logger = logging.getLogger(__name__)
-MODEL = "gemini-3.5-flash"
 APP_NAME = "lifesaver"
 
 
@@ -106,7 +104,7 @@ async def _generate_recap(uid: str, stats: dict) -> str:
 
     agent = LlmAgent(
         name="InsightsAgent",
-        model=MODEL,
+        model=get_model(),
         description="Generates a kind, coaching-style productivity recap.",
         instruction=f"""You write kind, coaching-style productivity recaps.
 
