@@ -12,7 +12,10 @@ credential lookup (which works on GCP-adjacent environments).
 """
 
 import os
+import json
+import base64
 import logging
+import tempfile
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -30,20 +33,22 @@ def get_db():
     if not firebase_admin._apps:
         project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "lifesaver-501004")
 
-        # Check if a service account key is available (production on Render)
-        sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        if sa_path and os.path.exists(sa_path):
-            logger.info("Firebase Admin: using service account key from %s", sa_path)
-            cred = credentials.Certificate(sa_path)
+        # Option 1: base64-encoded service account JSON (Render/production)
+        b64 = os.environ.get("FIREBASE_SERVICE_ACCOUNT_B64")
+        if b64:
+            logger.info("Firebase Admin: using base64 service account")
+            sa_dict = json.loads(base64.b64decode(b64).decode("utf-8"))
+            cred = credentials.Certificate(sa_dict)
+
+        # Option 2: file path (local dev)
+        elif os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") and \
+             os.path.exists(os.environ["GOOGLE_APPLICATION_CREDENTIALS"]):
+            logger.info("Firebase Admin: using service account file")
+            cred = credentials.Certificate(os.environ["GOOGLE_APPLICATION_CREDENTIALS"])
+
+        # Option 3: Application Default Credentials
         else:
-            # Local dev / Render without a key file:
-            # Use ApplicationDefault — works when GOOGLE_APPLICATION_CREDENTIALS
-            # is set, OR falls back gracefully.
-            # For pure local dev without any credentials, the Firebase Admin SDK
-            # will still work for Firestore if the project allows it via rules.
-            logger.info(
-                "Firebase Admin: using ApplicationDefault for project %s", project_id
-            )
+            logger.info("Firebase Admin: using ApplicationDefault")
             cred = credentials.ApplicationDefault()
 
         firebase_admin.initialize_app(cred, {"projectId": project_id})
