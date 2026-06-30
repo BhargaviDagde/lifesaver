@@ -32,6 +32,7 @@ from routes.tasks import router as tasks_router
 from routes.voice import router as voice_router
 from routes.internal import router as internal_router
 from routes.insights import router as insights_router
+from routes.notifications import router as notifications_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,6 +74,7 @@ app.include_router(tasks_router, tags=["tasks"])
 app.include_router(voice_router, tags=["voice"])
 app.include_router(internal_router, tags=["internal"])
 app.include_router(insights_router, tags=["insights"])
+app.include_router(notifications_router, tags=["notifications"])
 
 # ---------------------------------------------------------------------------
 # Health / hello-world — Phase 0 smoke test

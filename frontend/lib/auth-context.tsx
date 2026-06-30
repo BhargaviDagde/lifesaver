@@ -2,7 +2,7 @@
 
 /**
  * AuthContext — provides Firebase auth state across the app.
- * Wrap the entire app in <AuthProvider> and consume with useAuth().
+ * Also handles FCM token registration for push notifications.
  */
 
 import {
@@ -14,7 +14,11 @@ import {
 } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "./firebase";
+import { getToken } from "firebase/messaging";
+import { auth, db, getMessagingInstance } from "./firebase";
+
+const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
 
 interface AuthContextValue {
   user: User | null;
@@ -41,7 +45,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userSnap = await getDoc(userRef);
 
         if (!userSnap.exists()) {
-          // First sign-in — create profile
           await setDoc(userRef, {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName,
@@ -60,6 +63,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setIsNewUser(false);
         }
+
+        // Register FCM token for push notifications (best-effort)
+        _registerFcmToken(firebaseUser);
       }
       setUser(firebaseUser);
       setLoading(false);
@@ -73,6 +79,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+async function _registerFcmToken(firebaseUser: User) {
+  try {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return;
+
+    const messaging = await getMessagingInstance();
+    if (!messaging || !VAPID_KEY) return;
+
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    if (!token) return;
+
+    const idToken = await firebaseUser.getIdToken();
+    await fetch(`${BACKEND_URL}/notifications/register-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ token }),
+    });
+  } catch (e) {
+    // Non-critical — notifications just won't work if this fails
+    console.debug("FCM token registration failed:", e);
+  }
 }
 
 export function useAuth() {
