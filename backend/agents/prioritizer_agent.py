@@ -1,92 +1,62 @@
 """
-Prioritizer Agent — scores tasks and generates human-readable reasoning.
+Prioritizer Agent — scores task urgency × importance × effort.
 
-Scoring model (hybrid — explainable to judges, genuinely smart):
-  1. Urgency component (deterministic):
-     urgency = 1 - (hours_until_deadline / max_horizon_hours)
-     Clipped to [0, 1]. A task due in 2 hours scores much higher than one due in a week.
+Reads {parsed_task} from session state (written by IntakeAgent via output_key).
+Writes priorityScore + priorityReasoning to state via output_key="priority_result".
 
-  2. Importance/effort component (LLM-assessed):
-     Gemini reasons about stakes and category:
-     - A job interview outranks a routine bill at the same time-to-deadline
-     - High estimated effort gets a slight penalty (harder to fit → lower urgency boost)
-     Combined into a 0–1 importance score.
+Scoring model (hybrid — explainable):
+  urgency  = deterministic (hours until deadline, computed in instruction context)
+  importance/effort = LLM-assessed (stakes, category, estimated effort)
+  final = weighted combination
 
-  3. Final weighted score:
-     priorityScore = round((0.6 * urgency + 0.4 * importance) * 100)
-
-  Output: priorityScore (0–100) + priorityReasoning (1–2 sentences, shown in UI)
-
-Model: gemini-3.5-flash via Vertex AI
+Model: gemini-3.5-flash
 """
 
-import logging
 from datetime import datetime, timezone
-from pydantic import BaseModel
-from typing import Optional
+from google.adk.agents import LlmAgent
 
-logger = logging.getLogger(__name__)
-
-MODEL_NAME = "gemini-3.5-flash"
-MAX_HORIZON_HOURS = 168  # 7 days — tasks beyond this get minimum urgency score
-
-PRIORITIZER_INSTRUCTION = """You assess task importance and effort for a productivity app.
-
-Given a task title, category, estimated duration, and deadline context, return:
-- importanceScore: float 0.0–1.0 reflecting stakes and category
-  (job interview > assignment > bill > meeting > other at equal time pressure)
-- effortPenalty: float 0.0–0.3 based on estimated minutes
-  (tasks > 3 hours get a small penalty since they're harder to fit last-minute)
-- reasoning: one to two sentences explaining the score in plain English
-
-Be specific. "Important because it's a job interview with career implications" is good.
-"This task is important" is not."""
+MODEL = "gemini-3.5-flash"
 
 
-class PriorityResult(BaseModel):
-    priorityScore: int  # 0–100
-    priorityReasoning: str
-    importanceScore: float
-    urgencyScore: float
+def build_prioritizer_agent() -> LlmAgent:
+    """Return a configured Prioritizer LlmAgent."""
 
+    now_iso = datetime.now(timezone.utc).isoformat()
 
-def compute_urgency(deadline: Optional[datetime]) -> float:
-    """Deterministic urgency: inverse of time remaining, clipped to [0, 1]."""
-    if deadline is None:
-        return 0.3  # no deadline → medium-low urgency
-    now = datetime.now(timezone.utc)
-    deadline_aware = deadline.replace(tzinfo=timezone.utc) if deadline.tzinfo is None else deadline
-    hours_remaining = max(0, (deadline_aware - now).total_seconds() / 3600)
-    urgency = 1.0 - min(hours_remaining / MAX_HORIZON_HOURS, 1.0)
-    return round(urgency, 4)
+    return LlmAgent(
+        name="PrioritizerAgent",
+        model=MODEL,
+        description="Scores task urgency and importance, producing a 0-100 priority score.",
+        output_key="priority_result",
+        instruction=f"""You score task priority. Current UTC time: {now_iso}
 
+The parsed task is: {{parsed_task}}
 
-def build_prioritizer_agent():
-    """
-    Returns an ADK agent configured for prioritization.
-    Phase 0 stub.
-    """
-    # TODO Phase 2: implement with ADK
-    raise NotImplementedError("PrioritizerAgent not yet implemented (Phase 2)")
+Compute and return ONLY a valid JSON object with:
+- priorityScore: integer 0-100
+- priorityReasoning: string — 1-2 sentences shown to the user explaining the score
 
+Scoring guide:
+1. Urgency (0-60 points, deterministic):
+   - Deadline within 2 hours:  55-60 pts
+   - Deadline within 4 hours:  45-54 pts
+   - Deadline within 24 hours: 35-44 pts
+   - Deadline within 3 days:   20-34 pts
+   - Deadline within 7 days:   10-19 pts
+   - No deadline or > 7 days:  0-9 pts
 
-async def run_prioritizer(
-    title: str,
-    category: str,
-    deadline: Optional[datetime],
-    estimated_minutes: Optional[int],
-) -> PriorityResult:
-    """
-    Score a task and generate reasoning.
-    Phase 0 stub — deterministic urgency only, no LLM call yet.
-    """
-    logger.info("Prioritizer requested: title=%r, category=%s", title, category)
-    urgency = compute_urgency(deadline)
-    # TODO Phase 2: LLM call for importance/effort component
-    priority_score = round(urgency * 60)  # placeholder: 60% weight on urgency
-    return PriorityResult(
-        priorityScore=priority_score,
-        priorityReasoning="Priority calculated from deadline urgency. Full LLM reasoning in Phase 2.",
-        importanceScore=0.5,
-        urgencyScore=urgency,
+2. Importance/effort (0-40 points, you assess):
+   - Category "interview": +35-40 pts (career impact)
+   - Category "assignment" with high estimated effort (>2h): +25-35 pts
+   - Category "bill": +20-30 pts (financial consequence)
+   - Category "meeting": +15-25 pts
+   - Category "other": +10-20 pts
+   - Penalty: estimatedMinutes > 180 → subtract 5 pts (harder to fit last-minute)
+
+Sum urgency + importance. Cap at 100.
+
+reasoning should be specific: name the deadline time, category, and why it matters.
+Example: "Due in 3 hours and it's a graded assignment — moved to top of queue."
+
+Return ONLY the JSON object, no markdown.""",
     )

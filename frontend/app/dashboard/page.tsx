@@ -10,6 +10,7 @@ import {
   deleteTask,
   Task,
 } from "@/lib/tasks";
+import { createTask } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 
 export default function DashboardPage() {
@@ -51,11 +52,23 @@ export default function DashboardPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createTaskDirect(user.uid, { title });
-      setTaskInput("");
-      inputRef.current?.focus();
+      const result = await createTask(title, "manual");
+      if (result.status === "needs_clarification") {
+        setError(`Life Saver needs a bit more info: ${result.message}`);
+      } else {
+        setTaskInput("");
+        inputRef.current?.focus();
+      }
     } catch {
-      setError("Couldn't add task. Try again.");
+      // Fallback: write directly to Firestore so the UI still works
+      // even if the backend/agents are unavailable
+      try {
+        await createTaskDirect(user.uid, { title });
+        setTaskInput("");
+        inputRef.current?.focus();
+      } catch {
+        setError("Couldn't add task. Try again.");
+      }
     } finally {
       setSubmitting(false);
     }

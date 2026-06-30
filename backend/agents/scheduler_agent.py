@@ -1,67 +1,106 @@
 """
-Scheduler Agent — finds open calendar slots and books them.
+Scheduler Agent — finds an open calendar slot and books it.
 
-Tools (see tools/calendar_tools.py):
-  - list_busy_blocks(uid, start, end) — Calendar freebusy query
-  - create_calendar_event(uid, title, start, end, description) — create event
-  - update_calendar_event(uid, event_id, start, end) — move event
-  - delete_calendar_event(uid, event_id) — remove event
+Reads {parsed_task} and {priority_result} from session state.
+Calls calendar tools to find availability and create an event.
+Writes scheduling result to state via output_key="schedule_result".
 
-Scheduling logic:
-  1. Determine search window: from now until deadline
-  2. Respect user's workHoursStart / workHoursEnd and timezone
-  3. Work backward from deadline (closer deadlines get earlier slots)
-  4. Find a contiguous free slot >= estimatedMinutes
-  5. Create the calendar event, write back calendarEventId/scheduledStart/scheduledEnd
-  6. Log the action with plain-English reasoning
-
-Model: gemini-3.5-flash via Vertex AI
+Model: gemini-3.5-flash
 """
 
-import logging
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from google.adk.agents import LlmAgent
+from tools.calendar_tools import list_busy_blocks, create_calendar_event
 
-logger = logging.getLogger(__name__)
-
-MODEL_NAME = "gemini-3.5-flash"
-
-SCHEDULER_INSTRUCTION = """You schedule tasks by finding optimal calendar slots.
-
-Given a task with a deadline and estimated duration:
-1. Find the earliest available slot within work hours that fits the task
-2. Prefer slots sooner rather than later for high-urgency tasks
-3. Never schedule outside the user's stated work hours
-4. Never schedule past the deadline
-
-Use the provided calendar tools to check availability and create events.
-After booking, explain in one sentence why you chose that slot."""
+MODEL = "gemini-3.5-flash"
 
 
-def build_scheduler_agent():
+def build_scheduler_agent(uid: str, work_start: int = 9, work_end: int = 18,
+                           tz_str: str = "America/Chicago") -> LlmAgent:
     """
-    Returns an ADK agent with calendar tools attached.
-    Phase 0 stub.
-    """
-    # TODO Phase 2: implement with ADK
-    # Wire calendar_tools.py functions as ADK tools
-    raise NotImplementedError("SchedulerAgent not yet implemented (Phase 2)")
+    Return a configured Scheduler LlmAgent with calendar tools bound to the user.
 
+    We use closures to bind uid to each tool function so the agent
+    doesn't need to know about uid — it just calls the tools.
+    """
 
-async def run_scheduler(
-    uid: str,
-    task_id: str,
-    title: str,
-    deadline: datetime,
-    estimated_minutes: int,
-    work_hours_start: int = 9,
-    work_hours_end: int = 18,
-    timezone_str: str = "America/Chicago",
-) -> dict:
-    """
-    Find a slot and create a calendar event for the task.
-    Returns dict with calendarEventId, scheduledStart, scheduledEnd, reasoning.
-    Phase 0 stub.
-    """
-    logger.info("Scheduler requested: uid=%s, task=%s, title=%r", uid, task_id, title)
-    raise NotImplementedError("run_scheduler not yet implemented (Phase 2)")
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    def check_availability(start_iso: str, end_iso: str) -> dict:
+        """Check busy blocks on the user's Google Calendar between two ISO timestamps.
+
+        Args:
+            start_iso: Start of search window in ISO 8601 format (UTC).
+            end_iso: End of search window in ISO 8601 format (UTC).
+
+        Returns:
+            dict with 'busy' list of {start, end} blocks, or 'error' string.
+        """
+        try:
+            from datetime import datetime as dt
+            start = dt.fromisoformat(start_iso.replace("Z", "+00:00"))
+            end = dt.fromisoformat(end_iso.replace("Z", "+00:00"))
+            busy = list_busy_blocks(uid, start, end)
+            return {"busy": busy}
+        except Exception as e:
+            return {"error": str(e)}
+
+    def book_calendar_event(title: str, start_iso: str, end_iso: str,
+                            description: str = "") -> dict:
+        """Create a calendar event on the user's Google Calendar.
+
+        Args:
+            title: Event title.
+            start_iso: Start time in ISO 8601 format (UTC).
+            end_iso: End time in ISO 8601 format (UTC).
+            description: Optional event description.
+
+        Returns:
+            dict with 'eventId' string, or 'error' string.
+        """
+        try:
+            from datetime import datetime as dt
+            start = dt.fromisoformat(start_iso.replace("Z", "+00:00"))
+            end = dt.fromisoformat(end_iso.replace("Z", "+00:00"))
+            event_id = create_calendar_event(uid, title, start, end, description)
+            return {"eventId": event_id, "start": start_iso, "end": end_iso}
+        except Exception as e:
+            return {"error": str(e)}
+
+    return LlmAgent(
+        name="SchedulerAgent",
+        model=MODEL,
+        description="Finds an open calendar slot and books it for the task.",
+        tools=[check_availability, book_calendar_event],
+        output_key="schedule_result",
+        instruction=f"""You schedule a task onto the user's calendar. Current UTC time: {now_iso}
+
+Task: {{parsed_task}}
+Priority: {{priority_result}}
+
+Work hours: {work_start}:00–{work_end}:00 local time (treat as UTC for now).
+
+Instructions:
+1. If the task already has a deadline, search from now until the deadline.
+   If no deadline, search the next 7 days.
+2. Call check_availability to find busy blocks in the search window.
+3. Find the earliest contiguous free slot that:
+   - Fits estimatedMinutes (default 60 min if not specified)
+   - Falls within work hours ({work_start}:00–{work_end}:00)
+   - Is at least 30 minutes from now
+   - Ends before the deadline (if there is one)
+4. Call book_calendar_event with the task title, chosen start/end times.
+5. Return ONLY a JSON object with:
+   - eventId: string (from booking, or null if calendar not connected)
+   - scheduledStart: ISO 8601 string
+   - scheduledEnd: ISO 8601 string
+   - reasoning: 1 sentence — why you chose that slot
+   - calendarConnected: boolean
+
+If check_availability returns an error (calendar not connected), return:
+{{"eventId": null, "scheduledStart": null, "scheduledEnd": null,
+  "reasoning": "Calendar not connected — task saved without a scheduled block.",
+  "calendarConnected": false}}
+
+Return ONLY the JSON object, no markdown.""",
+    )

@@ -107,7 +107,7 @@ export interface InsightsResponse {
   tasksMissed: number;
   onTimeRate: number;
   currentStreak: number;
-  categoryBreakdown: Record<string, number>;
+  categoryBreakdown: Record<string, { done: number; total: number }>;
   recap: string;
   generatedAt: string;
 }
