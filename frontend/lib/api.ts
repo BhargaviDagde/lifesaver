@@ -125,4 +125,8 @@ export function getOAuthConnectUrl(): string {
   return `${BACKEND_URL}/auth/google/authorize`;
 }
 
+export async function triggerGmailScan(): Promise<{ status: string }> {
+  return request("/internal/gmail-scan", { method: "POST" });
+}
+
 export { ApiError };

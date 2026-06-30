@@ -32,11 +32,17 @@ async def monitor_sweep(request: Request, background_tasks: BackgroundTasks):
 async def gmail_scan(request: Request, background_tasks: BackgroundTasks):
     """
     Cron target — periodic Gmail inbox scan.
-    Surfaces suggested tasks (status=inbox) pending user approval.
+    Also callable by authenticated users directly from the frontend.
     """
-    await verify_cron_secret(request)
-    logger.info("Gmail scan triggered")
-    background_tasks.add_task(_run_gmail_scan)
+    # Try user auth first, fall back to cron secret
+    uid = None
+    try:
+        uid = await verify_firebase_token(request)
+    except Exception:
+        await verify_cron_secret(request)
+
+    logger.info("Gmail scan triggered, uid=%s", uid)
+    background_tasks.add_task(_run_gmail_scan, uid_filter=uid)
     return {"status": "ok", "message": "Gmail scan started."}
 
 
@@ -53,12 +59,9 @@ async def _run_monitor_sweep():
         logger.error("Monitor sweep failed: %s", e, exc_info=True)
 
 
-async def _run_gmail_scan():
-    """
-    Scan Gmail for all connected users.
-    """
+async def _run_gmail_scan(uid_filter: str | None = None):
+    """Scan Gmail for connected users. If uid_filter set, only scan that user."""
     try:
-        # Ensure env vars are loaded (background tasks may not inherit them on all platforms)
         from dotenv import load_dotenv
         import os
         load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -67,16 +70,22 @@ async def _run_gmail_scan():
         from services.token_store import get_refresh_token
         from tools.gmail_tools import scan_inbox_for_tasks
         from agents.intake_agent import build_intake_agent
+
+        db = get_db()
+
+        if uid_filter:
+            user_doc = db.collection("users").document(uid_filter).get()
+            users = [user_doc] if user_doc.exists and user_doc.to_dict().get("gmailConnected") else []
+        else:
+            users = list(db.collection("users").where("gmailConnected", "==", True).stream())
+
+        logger.info("Gmail scan: %d user(s)", len(users))
         from agents.model_config import get_model
         from tools.firestore_tools import log_agent_action
         from google.adk.runners import Runner
         from google.adk.sessions import InMemorySessionService
         from google.genai import types as genai_types
         import json
-
-        db = get_db()
-        users = list(db.collection("users").where("gmailConnected", "==", True).stream())
-        logger.info("Gmail scan: %d connected users", len(users))
 
         for user_doc in users:
             uid = user_doc.id

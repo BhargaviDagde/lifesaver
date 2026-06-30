@@ -11,7 +11,7 @@ import {
   deleteTask,
   Task,
 } from "@/lib/tasks";
-import { createTask } from "@/lib/api";
+import { createTask, triggerGmailScan } from "@/lib/api";
 import { TaskCard } from "@/components/TaskCard";
 
 export default function DashboardPage() {
@@ -21,6 +21,8 @@ export default function DashboardPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gmailConnected, setGmailConnected] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Real-time task subscription
@@ -78,6 +80,20 @@ export default function DashboardPage() {
       setError(`Couldn't add task: ${msg}. Is the backend running?`);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleScanGmail() {
+    setScanning(true);
+    setScanMsg(null);
+    try {
+      await triggerGmailScan();
+      setScanMsg("Scanning your inbox… tasks will appear here in ~20 seconds.");
+      setTimeout(() => setScanMsg(null), 20000);
+    } catch {
+      setScanMsg("Scan failed. Make sure Gmail is connected in Settings.");
+    } finally {
+      setScanning(false);
     }
   }
 
@@ -204,7 +220,21 @@ export default function DashboardPage() {
           {gmailConnected ? (
             <EmptyState
               title="No email suggestions yet."
-              body="Life Saver scans your inbox every 20 minutes. If you have unread emails mentioning deadlines, they'll appear here for one-tap approval."
+              body="Life Saver scans your inbox every 20 minutes. Click below to scan now."
+              action={
+                <button
+                  onClick={handleScanGmail}
+                  disabled={scanning}
+                  className="btn-primary text-sm mt-1"
+                >
+                  {scanning ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Scanning…
+                    </span>
+                  ) : "Scan inbox now"}
+                </button>
+              }
             />
           ) : (
             <EmptyState
@@ -218,6 +248,10 @@ export default function DashboardPage() {
             />
           )}
         </section>
+      )}
+
+      {scanMsg && (
+        <p className="text-xs text-[#38B2AC] text-center py-2 animate-fade-in">{scanMsg}</p>
       )}
     </div>
   );
