@@ -4,7 +4,7 @@ Read this at the start of every session to know exactly where things stand.
 
 ---
 
-## Current Phase: Phase 0 — Skeleton & Deploy Pipeline (IN PROGRESS)
+## Current Phase: Phase 0 — Skeleton & Deploy Pipeline (SCAFFOLD COMPLETE — awaiting credentials to deploy)
 
 ---
 
@@ -68,4 +68,4 @@ Read this at the start of every session to know exactly where things stand.
 ---
 
 ## Session Log
-- **Session 1:** Initial scaffold. All files created. Awaiting user credentials to proceed with deployment.
+- **Session 1:** Full scaffold complete. 52 files across frontend, backend, agents, tools, routes, services, Firestore rules/indexes, scripts, and all 5 spec/tracking docs. Git committed as root commit `4a93e61`. Awaiting user credentials to proceed with deployment.

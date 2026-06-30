@@ -9,14 +9,16 @@ Read this file at the start of every session. These constraints do not change wi
   - ⚠️ Preview model names rotate — confirm at https://ai.google.dev/gemini-api/docs/live-api before implementing
 
 ## Google Cloud Project
-- **Project ID:** _(ask user — do not invent)_
+- **Project ID:** `lifesaver-501004`
 - **Region:** `us-central1`
 - **Auth model:** Application Default Credentials (ADC) via Cloud Run service account — NO floating API keys
 
 ## Firebase
-- **Project:** same as Google Cloud project
+- **Project:** `lifesaver-501004`
 - **Auth provider:** Google (signInWithPopup)
-- **Web config (apiKey, authDomain, etc.):** _(ask user — these are public/client-safe but must come from real project)_
+- **authDomain:** `lifesaver-501004.firebaseapp.com`
+- **messagingSenderId:** `989807541983`
+- **Web config is in `frontend/.env.local` and `frontend/lib/firebase.ts` defaults**
 
 ## Required Secrets (all via Secret Manager, never hardcoded)
 - `GOOGLE_OAUTH_CLIENT_ID` — from user
@@ -26,6 +28,7 @@ Read this file at the start of every session. These constraints do not change wi
 
 ## ADK Version
 - Install: `pip install google-adk`
+- **Resolved version (June 2026): `google-adk==2.3.0`** — do NOT pin to `1.0.0` (that's outdated)
 - Before implementing any ADK integration, fetch current docs: https://google.github.io/adk-docs/
 - Before implementing voice/streaming, read: https://google.github.io/adk-docs/streaming/
 

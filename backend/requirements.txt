@@ -1,33 +1,30 @@
 # FastAPI + server
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-python-multipart==0.0.9
-websockets==13.0.1
-httpx==0.27.2
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+websockets>=13.0.0
+httpx>=0.27.0
 
-# Google Agent Development Kit
-google-adk==1.0.0
+# Google Agent Development Kit (installs google-api-python-client, google-cloud-aiplatform as transitive deps)
+# Pinned to >=2.3.0 — the version resolved in June 2026. Do NOT pin to 1.0.0.
+google-adk>=2.3.0
 
-# Google Cloud / Vertex AI
-google-cloud-aiplatform==1.65.0
-google-cloud-firestore==2.18.0
-google-cloud-secret-manager==2.20.2
-google-auth==2.35.0
-google-auth-httplib2==0.2.0
-google-api-python-client==2.145.0
+# Google Cloud
+google-cloud-firestore>=2.18.0
+google-cloud-secret-manager>=2.20.0
+google-auth>=2.35.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
 
 # Firebase Admin
-firebase-admin==6.5.0
+firebase-admin>=6.5.0
 
 # Encryption for refresh token storage
-cryptography==43.0.1
-
-# OAuth
-google-auth-oauthlib==1.2.1
+cryptography>=43.0.0
 
 # Utilities
-pydantic==2.9.2
-pydantic-settings==2.5.2
-python-jose[cryptography]==3.3.0
-python-dotenv==1.0.1
-pytz==2024.2
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-jose[cryptography]>=3.3.0
+python-dotenv>=1.0.0
+pytz>=2024.1
