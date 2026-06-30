@@ -136,10 +136,17 @@ def _log_pipeline_actions(uid: str, task_id: str, result: dict, original_text: s
         from datetime import datetime
         start = result["scheduledStart"]
         end = result.get("scheduledEnd")
-        time_str = start.strftime("%-I:%M%p").lower() if hasattr(start, "strftime") else str(start)
+        # Use cross-platform time formatting
+        if hasattr(start, "strftime"):
+            hour = start.strftime("%I").lstrip("0") or "12"
+            ampm = start.strftime("%p").lower()
+            time_str = f"{hour}:{start.strftime('%M')}{ampm}"
+        else:
+            time_str = str(start)
         action = f"Scheduled \"{result['title']}\" for {time_str}"
         if end and hasattr(end, "strftime"):
-            action += f"–{end.strftime('%-I:%M%p').lower()}"
+            h2 = end.strftime("%I").lstrip("0") or "12"
+            action += f"–{h2}:{end.strftime('%M')}{end.strftime('%p').lower()}"
         log_agent_action(
             uid=uid,
             agent="scheduler",

@@ -138,7 +138,8 @@ async def _sweep_user(uid: str, now: datetime) -> dict:
         if reschedule_result.get("rescheduled"):
             start = reschedule_result["newStart"]
             if hasattr(start, "strftime"):
-                action = f"Rescheduled '{title}' to {start.strftime('%-I:%M%p').lower()}"
+                h = start.strftime("%I").lstrip("0") or "12"
+                action = f"Rescheduled '{title}' to {h}:{start.strftime('%M')}{start.strftime('%p').lower()}"
             else:
                 action = f"Rescheduled '{title}' to a new slot"
 

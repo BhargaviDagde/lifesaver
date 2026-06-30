@@ -55,10 +55,14 @@ async def _run_monitor_sweep():
 
 async def _run_gmail_scan():
     """
-    Scan Gmail for all connected users. For each email that looks like a task,
-    run the Intake Agent and create a status=inbox task for user approval.
+    Scan Gmail for all connected users.
     """
     try:
+        # Ensure env vars are loaded (background tasks may not inherit them on all platforms)
+        from dotenv import load_dotenv
+        import os
+        load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+
         from services.firestore_client import get_db
         from services.token_store import get_refresh_token
         from tools.gmail_tools import scan_inbox_for_tasks
