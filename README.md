@@ -1,179 +1,217 @@
-# Last-Minute Life Saver
+<div align="center">
 
-An AI productivity companion that doesn't just remind you — it acts.
+<img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js" />
+<img src="https://img.shields.io/badge/FastAPI-Python_3.12-009688?style=flat-square&logo=fastapi" />
+<img src="https://img.shields.io/badge/Google_ADK-2.3.0-4285F4?style=flat-square&logo=google" />
+<img src="https://img.shields.io/badge/Firebase-Auth_%7C_Firestore_%7C_FCM-FFCA28?style=flat-square&logo=firebase" />
+<img src="https://img.shields.io/badge/Gemini-AI-8E75B2?style=flat-square&logo=google" />
 
-## What it is
+</div>
 
-Most reminder apps nag. Life Saver acts. It watches your calendar, spots deadlines in your email, schedules work blocks automatically, and — when something is about to slip — quietly moves things around and tells you exactly what it changed and why.
+---
 
-Built for a Google Technologies hackathon. Every feature maps to a real agent with real tools, not a single chatbot prompt wrapped in agent theater.
+# ⚡ Last-Minute Life Saver
 
-## Architecture (one paragraph)
+> **Your AI companion that acts before you have to ask.**
 
-A Next.js 15 frontend on Firebase App Hosting talks to a FastAPI backend on Cloud Run. The backend runs five specialized agents via Google's Agent Development Kit (ADK) with Gemini 3.5 Flash as the LLM backbone. New tasks flow through a SequentialAgent pipeline — Intake → Prioritizer → Scheduler — that parses text, scores urgency × importance, and books a calendar slot autonomously. A Monitor Agent runs every 20 minutes via Cloud Scheduler, scans all users' tasks for at-risk deadlines, sends FCM push notifications, and reschedules calendar blocks without any user interaction. Task data lives in Cloud Firestore with real-time `onSnapshot` listeners so the UI updates live when an agent changes something. OAuth refresh tokens for Calendar/Gmail background access are stored encrypted in Firestore (backend-only, denied to client reads by security rules).
+Most productivity apps remind you. Life Saver **acts**. It watches your calendar, reads your email for hidden deadlines, finds time for your tasks automatically, and — when something is about to slip — quietly reschedules it and tells you exactly what changed and why. No nagging. No generic pings. Just calm, competent execution.
 
-## Model names (verified June 2026)
+**→ Live demo:** [https://lifesaver-501004.web.app](https://lifesaver-501004.web.app)
 
-- Text/agent backbone: `gemini-3.5-flash` via Vertex AI
-- Voice (Live API): `gemini-3.1-flash-live-preview` — confirm at https://ai.google.dev/gemini-api/docs/live-api before using (preview names rotate)
-- **Do NOT use `gemini-2.5-flash`** — it has been retired and will 404
+---
 
-## Tech stack
+## 📸 Screenshots
 
-| Layer | Technology |
+### Sign In
+![Sign In](docs/screenshots/login.png)
+
+*Clean, minimal login. Calendar and Gmail access is explained plainly — what you get, not what permission scope is being requested.*
+
+### Dashboard — Today's Priorities
+![Dashboard](docs/screenshots/dashboard.png)
+
+*Every task is scored, scheduled, and reasoned. The AI priority bar shows exactly how urgent and important each task is. Email-detected tasks surface for one-tap approval.*
+
+### Onboarding
+![Onboarding](docs/screenshots/onboarding.png)
+
+*Life Saver sets itself up. Two clicks to connect your calendar and email, one screen to set work hours.*
+
+### Insights — Habit Tracking
+![Insights](docs/screenshots/insights.png)
+
+*Consistency chart, streak tracking, category breakdown, and AI-generated coaching — pattern-noticing, not failure scoring.*
+
+---
+
+## 🧠 How it thinks
+
+Life Saver runs five specialized AI agents, each with a distinct job:
+
+```
+You type "essay due Friday, 3 hours"
+         ↓
+  Intake Agent       → parses title, deadline, category, estimated effort
+         ↓
+  Prioritizer Agent  → scores urgency × importance × effort → 0–100 with reasoning
+         ↓
+  Scheduler Agent    → checks your calendar, finds a free slot, books it
+         ↓
+  Your calendar has a block. Your dashboard shows the task. You didn't have to think.
+
+Meanwhile, every 20 minutes:
+  Monitor Agent      → scans all tasks, reschedules at-risk ones, sends you a push notification
+  
+On demand:
+  Insights Agent     → aggregates your patterns, generates a coaching recap
+```
+
+The agents don't run in isolation — they share session state through a sequential pipeline built with **Google's Agent Development Kit (ADK)**. Each agent's output becomes the next agent's input.
+
+---
+
+## ✨ Key capabilities
+
+**Intelligent task prioritization**
+Every task gets a 0–100 priority score combining deadline urgency (deterministic) with AI-assessed importance and effort. A job interview scores higher than a routine bill at the same deadline — and the app tells you why in plain English.
+
+**AI-powered scheduling**
+The Scheduler Agent queries your Google Calendar for free slots, respects your work hours, and books time blocks automatically. Closer deadlines get earlier slots.
+
+**Autonomous task rescue**
+The Monitor Agent runs every 20 minutes without any user interaction. When a task is at risk — deadline within 4 hours, or a scheduled block already passed — it finds a new slot, moves the calendar event, and sends you a calm push notification explaining exactly what it did.
+
+**Email-based deadline detection**
+Life Saver scans your Gmail (read-only) for emails containing deadline signals. Detected tasks appear in a pending approval queue — you tap "Schedule this" and the full pipeline runs. Nothing is scheduled without your approval.
+
+**Habit and consistency tracking**
+The Insights page shows your completion streak, on-time rate, daily consistency chart (7/14/30-day views), and category-level breakdown. Coaching suggestions are pattern-based, never a failure scorecard.
+
+**Activity feed**
+Every agent action is logged with plain-language reasoning. The `/activity` feed shows exactly what happened, which agent did it, and why — in real time via Firestore listeners.
+
+**Context-aware notifications**
+Push notifications are written by the AI specifically for each task. "Your lab report is due in 3 hours — moved your 2pm block earlier, you're all set." Not "Task deadline approaching."
+
+---
+
+## 🛠 Built with Google technologies
+
+| Technology | Role |
 |---|---|
-| Frontend | Next.js 15, TypeScript, Tailwind CSS |
-| Frontend hosting | Firebase App Hosting |
-| Backend | FastAPI, Python 3.12 |
-| Backend hosting | Google Cloud Run |
-| Agent framework | Google ADK (`google-adk`) |
-| LLM | Gemini 3.5 Flash via Vertex AI |
-| Auth | Firebase Authentication (Google provider) |
-| Database | Cloud Firestore |
-| Push notifications | Firebase Cloud Messaging |
-| Calendar | Google Calendar API v3 |
-| Email intake | Gmail API (readonly) |
-| Background jobs | Cloud Scheduler |
-| Voice | Gemini Live API via ADK bidi-streaming |
+| **Google Agent Development Kit (ADK)** | Multi-agent orchestration — SequentialAgent pipeline + per-agent tool use |
+| **Firebase Authentication** | Google sign-in, session management |
+| **Cloud Firestore** | Real-time task and activity data with `onSnapshot` listeners |
+| **Firebase Cloud Messaging** | Push notifications from the Monitor Agent |
+| **Firebase App Hosting** | Next.js frontend deployment |
+| **Google Calendar API v3** | Reading free/busy slots, creating and updating calendar events |
+| **Gmail API (readonly)** | Scanning inbox for deadline signals |
+| **Gemini AI** | LLM backbone for all five agents |
 
-## Setup
+---
+
+## 🏗 Architecture
+
+```
+                        ┌─────────────────────────────────────────┐
+                        │           Five ADK Agents               │
+                        │                                         │
+  User input ──────────▶│  Intake → Prioritizer → Scheduler       │──▶ Google Calendar
+  Gmail inbox ─────────▶│                                         │
+  Cron (every 20min) ──▶│  Monitor (autonomous, no user needed)   │──▶ FCM push
+                        │  Insights (on-demand)                   │
+                        └───────────────────────────────────────── ┘
+                                         │
+                              FastAPI + ADK (Render)
+                                         │
+                              ┌──────────┴──────────┐
+                         Firestore             Firebase Auth
+                    (real-time listeners)    (Google sign-in)
+                                         │
+                              Next.js (Firebase App Hosting)
+```
+
+**New task flow:** User types → Intake parses → Prioritizer scores → Scheduler books calendar slot → Firestore writes → UI updates live
+
+**Monitor flow:** Cron hits `/internal/monitor-sweep` → loops all users → flags at-risk tasks → LLM writes notification → reschedules calendar → FCM push → Firestore update → UI updates live
+
+---
+
+## 🚀 Getting started
 
 ### Prerequisites
+- Node.js 20+, Python 3.12+
+- Google Cloud project with Firestore, Calendar API, Gmail API enabled
+- Firebase project with Auth and Firestore
+- Groq API key (free at [console.groq.com](https://console.groq.com))
 
-- Node.js 20+
-- Python 3.12+
-- Google Cloud project with billing enabled
-- Firebase project (same project)
-- `gcloud` CLI authenticated
-- `firebase` CLI installed
-
-### 1. Clone and configure environment
+### Local setup
 
 ```bash
-git clone <repo>
+git clone https://github.com/BhargaviDagde/lifesaver
 cd lifesaver
-cp .env.example .env
-# Fill in .env with real values — see comments in the file
-```
 
-### 2. Google Cloud setup
-
-```bash
-# Enable required APIs
-gcloud services enable \
-  run.googleapis.com \
-  cloudscheduler.googleapis.com \
-  secretmanager.googleapis.com \
-  calendar-json.googleapis.com \
-  gmail.googleapis.com \
-  aiplatform.googleapis.com \
-  firestore.googleapis.com \
-  firebase.googleapis.com
-
-# Create secrets in Secret Manager
-echo -n "your-oauth-client-id" | gcloud secrets create GOOGLE_OAUTH_CLIENT_ID --data-file=-
-echo -n "your-oauth-client-secret" | gcloud secrets create GOOGLE_OAUTH_CLIENT_SECRET --data-file=-
-
-# Generate and store encryption key
-python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" | \
-  gcloud secrets create TOKEN_ENCRYPTION_KEY --data-file=-
-```
-
-### 3. Backend — local dev
-
-```bash
+# Backend
 cd backend
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+python -m venv .venv && .venv/Scripts/activate
 pip install -r requirements.txt
-
-# Set env vars (or use .env with python-dotenv)
-export GOOGLE_CLOUD_PROJECT=your-project-id
-export GOOGLE_CLOUD_LOCATION=us-central1
-export GOOGLE_GENAI_USE_VERTEXAI=true
-export SKIP_SCHEDULER_AUTH=true  # local dev only
-
+cp ../.env.example .env   # fill in your values
 uvicorn main:app --reload --port 8080
-# Visit http://localhost:8080
-```
 
-### 4. Frontend — local dev
-
-```bash
+# Frontend (new terminal)
 cd frontend
 npm install
-# Copy .env.example to .env.local and fill in Firebase config
-cp ../.env.example .env.local
+cp ../.env.example .env.local   # fill in Firebase config + backend URL
 npm run dev
-# Visit http://localhost:3000
 ```
 
-### 5. Deploy
+Visit `http://localhost:3000`.
 
-```bash
-bash scripts/deploy.sh
+### Environment variables
+
+See `.env.example` for the full list. Key ones:
+
+```
+GROQ_API_KEY=          # free at console.groq.com
+GOOGLE_CLOUD_PROJECT=  # your Firebase project ID
+FIREBASE_SERVICE_ACCOUNT_B64=  # base64-encoded service account JSON
+GOOGLE_OAUTH_CLIENT_ID=        # for Calendar + Gmail offline access
+TOKEN_ENCRYPTION_KEY=          # fernet key for refresh token encryption
 ```
 
-See `scripts/deploy.sh` for step-by-step deploy instructions.
+---
 
-### 6. Seed demo data
+## 📁 Project structure
 
-```bash
-cd backend
-pip install -r requirements.txt
-export GOOGLE_CLOUD_PROJECT=your-project-id
-python ../scripts/seed_demo_data.py --uid <your-firebase-uid>
+```
+lifesaver/
+├── frontend/          Next.js 15, TypeScript, Tailwind — Firebase App Hosting
+│   ├── app/           Pages: dashboard, tasks, calendar, insights, activity, settings
+│   ├── components/    TaskCard and other UI components
+│   └── lib/           Firebase client, API wrapper, task helpers
+├── backend/           FastAPI + Google ADK — Render (Docker)
+│   ├── agents/        intake, prioritizer, scheduler, monitor, insights + orchestrator
+│   ├── tools/         calendar_tools, gmail_tools, fcm_tools, firestore_tools
+│   ├── routes/        tasks, auth, internal (cron), calendar, insights, notifications
+│   └── services/      firestore_client, token_store, auth_middleware
+├── scripts/           seed_demo_data.py, deploy.sh
+└── firestore.rules    Security rules — oauth_tokens denied to all client reads
 ```
 
-Gets your uid from Firebase Console → Authentication → Users after signing in once.
+---
 
-## Demo script (60–90 seconds)
+## 🔒 Security notes
 
-**Setup:** seed data loaded, browser open to `/activity`, Cloud Scheduler running.
+- OAuth refresh tokens are **AES-encrypted** (Fernet) before storage — raw tokens never hit Firestore
+- `users/{uid}/oauth_tokens` is **denied to all client reads** by Firestore security rules — backend only via Admin SDK
+- Cron endpoint (`/internal/monitor-sweep`) is protected by a shared secret header — not an open POST
+- Firebase ID tokens verified on every authenticated backend request
 
-1. **(10s) The problem:** "Most productivity apps just remind you. Life Saver acts."
-   Show the dashboard — point out the at-risk Chemistry lab report.
+---
 
-2. **(20s) The Monitor Agent rescue:**
-   "This task is at risk — the scheduled block is after the deadline. Watch the Activity feed."
-   Wait for the Cloud Scheduler tick (or hit `/internal/monitor-sweep` manually).
-   Show: FCM push notification arrives, activity feed updates with Monitor Agent entry,
-   task status changes to `at_risk`, calendar event moves to a safe slot.
-   Read the reasoning aloud: *"Deadline in 2.5 hours. Moved to [time] — the only open block before the deadline."*
+## 🗺 What's next
 
-3. **(15s) The agent pipeline:**
-   Type "pay electricity bill by tomorrow, 10 minutes" in the quick-add bar.
-   Show the Activity feed updating in sequence: Intake → Prioritizer → Scheduler.
-   Open Google Calendar and show the new event.
-
-4. **(10s) Voice (Phase 5):**
-   Press the mic button: *"Add dentist appointment reminder for next Tuesday."*
-   Show transcript appearing, then the task appearing in the task list.
-
-5. **(10s) Insights:**
-   Open `/insights`. Show the Gemini-generated recap and streak.
-   Point out the coaching framing — not a failure scorecard.
-
-6. **(5s) Close:**
-   "One sign-in, and it's watching. That's the idea."
-
-## Build phases
-
-| Phase | Status | Description |
-|---|---|---|
-| 0 | ✅ Scaffolded | Skeleton + deploy pipeline |
-| 1 | 🔲 | Auth + manual task management |
-| 2 | 🔲 | Core agent pipeline + Calendar |
-| 3 | 🔲 | Monitor, Insights, Activity feed |
-| 4 | 🔲 | Gmail passive intake |
-| 5 | 🔲 | Voice |
-| 6 | 🔲 | Polish + submission |
-
-## Production improvements (out of scope for hackathon)
-
-- Split user-facing and background cron paths into separate Cloud Run services
-- Add Cloud Tasks queue for agent jobs instead of synchronous execution
-- Add rate limiting and per-user API quotas
-- Implement token rotation for OAuth refresh tokens
-- Add Firestore TTL policies for activity log cleanup
-- Add OpenTelemetry tracing across the agent pipeline
+- Split user-facing and cron-triggered services into separate deployments for latency isolation
+- Voice input via Gemini Live API bidi-streaming (architecture already scaffolded in `routes/voice.py`)
+- Smarter email parsing with few-shot examples for specific institution formats
+- Google Tasks and Google Meet integration for meeting prep reminders
