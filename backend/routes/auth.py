@@ -38,15 +38,23 @@ def _get_redirect_uri() -> str:
 
 
 @router.get("/google/authorize")
-async def google_authorize(request: Request):
+async def google_authorize(request: Request, token: str | None = None):
     """
-    Start the OAuth flow. The frontend calls this endpoint after the user
-    clicks "Connect Calendar & Gmail" in onboarding/settings.
-
-    Requires: Firebase ID token in Authorization header.
-    Returns: redirect to Google consent screen.
+    Start the OAuth flow.
+    Accepts Firebase ID token either as:
+    - Authorization: Bearer <token> header (API calls)
+    - ?token=<token> query param (browser redirects from frontend)
     """
-    uid = await verify_firebase_token(request)
+    # Try query param first (browser redirect), then header
+    if token:
+        from firebase_admin import auth as fb_auth
+        try:
+            decoded = fb_auth.verify_id_token(token)
+            uid = decoded["uid"]
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    else:
+        uid = await verify_firebase_token(request)
 
     client_id = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
     if not client_id:

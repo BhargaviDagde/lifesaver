@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getOAuthConnectUrl } from "@/lib/api";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080";
+
 export default function SettingsPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -40,9 +42,22 @@ export default function SettingsPage() {
     router.push("/login");
   }
 
-  function handleConnectGoogle() {
-    // Redirect to backend OAuth flow — backend redirects back with ?connected=true
-    window.location.href = getOAuthConnectUrl();
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  async function handleConnectGoogle() {
+    if (!user) return;
+    setConnecting(true);
+    setConnectError(null);
+    try {
+      // Get a fresh ID token and pass it as a query param
+      // Backend reads it from ?token= since this is a browser redirect (no headers possible)
+      const idToken = await user.getIdToken();
+      window.location.href = `${BACKEND_URL}/auth/google/authorize?token=${encodeURIComponent(idToken)}`;
+    } catch {
+      setConnectError("Failed to start connection. Try again.");
+      setConnecting(false);
+    }
   }
 
   async function handleSaveHours() {
@@ -108,8 +123,15 @@ export default function SettingsPage() {
           <StatusRow label="Gmail (read-only)" connected={gmailConnected} />
         </div>
 
-        <button className="btn-primary" onClick={handleConnectGoogle}>
-          {calendarConnected && gmailConnected ? "Reconnect" : "Connect Google Calendar & Gmail"}
+        {connectError && <p className="text-xs text-red-600 mb-2">{connectError}</p>}
+
+        <button className="btn-primary" onClick={handleConnectGoogle} disabled={connecting}>
+          {connecting ? (
+            <span className="flex items-center gap-2">
+              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden />
+              Connecting…
+            </span>
+          ) : calendarConnected && gmailConnected ? "Reconnect" : "Connect Google Calendar & Gmail"}
         </button>
       </section>
 
@@ -157,18 +179,7 @@ export default function SettingsPage() {
           Life Saver sends calm, specific alerts when a task is at risk or rescheduled —
           not generic pings. Allow notifications once and they register automatically.
         </p>
-        <button
-          className="btn-secondary"
-          onClick={async () => {
-            const perm = await Notification.requestPermission();
-            if (perm === "granted") {
-              // FCM token auto-registers via auth context on next sign-in
-              alert("Notifications enabled. You'll get them on the next monitor sweep.");
-            }
-          }}
-        >
-          Enable notifications
-        </button>
+        <NotificationsButton />
       </section>
     </div>
   );
@@ -183,5 +194,44 @@ function StatusRow({ label, connected }: { label: string; connected: boolean }) 
         {connected ? "Connected" : "Not connected"}
       </span>
     </div>
+  );
+}
+
+function NotificationsButton() {
+  const [status, setStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
+
+  async function handleEnable() {
+    if (!("Notification" in window)) {
+      setStatus("denied");
+      return;
+    }
+    setStatus("requesting");
+    try {
+      const perm = await Notification.requestPermission();
+      setStatus(perm === "granted" ? "granted" : "denied");
+    } catch {
+      setStatus("denied");
+    }
+  }
+
+  if (status === "granted") {
+    return (
+      <div className="flex items-center gap-2 text-sm text-[#38B2AC]">
+        <span>✓</span>
+        <span>Notifications enabled — you&apos;re all set.</span>
+      </div>
+    );
+  }
+  if (status === "denied") {
+    return (
+      <p className="text-sm text-[#6B7A8D]">
+        Notifications blocked. Enable them in your browser settings, then reload.
+      </p>
+    );
+  }
+  return (
+    <button className="btn-secondary" onClick={handleEnable} disabled={status === "requesting"}>
+      {status === "requesting" ? "Requesting permission…" : "Enable notifications"}
+    </button>
   );
 }

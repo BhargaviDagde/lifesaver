@@ -12,7 +12,6 @@ export default function LoginPage() {
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Already signed in — redirect immediately
   useEffect(() => {
     if (!loading && user) {
       router.replace(isNewUser ? "/onboarding" : "/dashboard");
@@ -24,8 +23,6 @@ export default function LoginPage() {
     setError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged in AuthContext will set isNewUser,
-      // the useEffect above handles the redirect.
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes("popup-closed")) {
         setError("Sign-in window closed. Try again.");
@@ -38,56 +35,70 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[#F7F9FC]">
-        <div className="w-6 h-6 border-2 border-[#2D7DD2] border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E2A3A] to-[#2D3F55]">
+        <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#F7F9FC] px-4">
-      <div className="w-full max-w-sm">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E2A3A] via-[#243447] to-[#1E2A3A] px-4">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#2D7DD2]/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#38B2AC]/10 rounded-full blur-3xl" />
+      </div>
+
+      <div className="w-full max-w-sm relative">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#2D7DD2] mb-4">
-            <span className="text-white text-2xl" aria-hidden>⚡</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2D7DD2] to-[#38B2AC] mb-5 shadow-lg shadow-[#2D7DD2]/30">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
           </div>
-          <h1 className="text-2xl font-bold text-[#1E2A3A]">Last-Minute Life Saver</h1>
-          <p className="text-[#6B7A8D] mt-1 text-sm">
-            Your AI companion that acts before you have to ask.
+          <h1 className="text-3xl font-bold text-white tracking-tight">Life Saver</h1>
+          <p className="text-[#94A3B8] mt-2 text-sm leading-relaxed">
+            Your AI companion that acts<br />before you have to ask.
           </p>
         </div>
 
-        {/* Sign-in card */}
-        <div className="card">
+        {/* Card */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-xl">
+          {/* Feature bullets */}
+          <div className="space-y-2.5 mb-6">
+            {[
+              ["📅", "Schedules tasks automatically"],
+              ["👁", "Reschedules when deadlines shift"],
+              ["📬", "Spots deadlines in your email"],
+            ].map(([icon, text]) => (
+              <div key={text} className="flex items-center gap-2.5">
+                <span className="text-base" aria-hidden>{icon}</span>
+                <span className="text-[#CBD5E1] text-sm">{text}</span>
+              </div>
+            ))}
+          </div>
+
           <button
             onClick={handleGoogleSignIn}
             disabled={signingIn}
-            className="btn-primary w-full"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-[#1E2A3A] font-semibold text-sm hover:bg-[#F7F9FC] transition-colors shadow-sm disabled:opacity-60"
             aria-label="Sign in with Google"
           >
             {signingIn ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden />
-                Signing in…
-              </>
+              <><div className="w-4 h-4 border-2 border-[#2D7DD2] border-t-transparent rounded-full animate-spin" />Signing in…</>
             ) : (
-              <>
-                <GoogleIcon />
-                Continue with Google
-              </>
+              <><GoogleIcon />Continue with Google</>
             )}
           </button>
 
           {error && (
-            <p role="alert" className="mt-3 text-sm text-red-600 text-center">
-              {error}
-            </p>
+            <p role="alert" className="mt-3 text-xs text-red-400 text-center">{error}</p>
           )}
 
-          <p className="mt-4 text-xs text-[#6B7A8D] text-center">
-            Life Saver will ask for calendar and email access in the next step
-            so it can schedule tasks and spot deadlines automatically.
+          <p className="mt-4 text-[10px] text-[#64748B] text-center leading-relaxed">
+            Calendar &amp; Gmail access requested in the next step.
+            <br />Your data is never sold or shared.
           </p>
         </div>
       </div>
