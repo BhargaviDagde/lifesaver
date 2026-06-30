@@ -2,69 +2,84 @@
 
 Read this file at the start of every session. These constraints do not change without explicit user confirmation.
 
-## Model Names (verified June 2026 — do not guess, verify before use)
-- **Text/agent backbone:** `gemini-3.5-flash` via Vertex AI
-  - ⚠️ Do NOT use `gemini-2.5-flash` — it has been retired and will 404
-- **Voice (Live API):** `gemini-3.1-flash-live-preview`
-  - ⚠️ Preview model names rotate — confirm at https://ai.google.dev/gemini-api/docs/live-api before implementing
+## Stack Change Note (applied retroactively)
+GCP billing could not be enabled. The following substitutions apply to the ENTIRE project:
+- **Vertex AI → Gemini Developer API** (AI Studio, `GOOGLE_API_KEY`, no billing)
+- **Cloud Run → Render** (free tier Docker container)
+- **Cloud Scheduler → cron-job.org** (free external cron, shared-secret auth)
+Everything else (Firebase, Firestore, FCM, App Hosting, Calendar API, Gmail API, ADK) is unchanged.
+
+## Model Names (verified June 2026)
+- **Text/agent backbone:** `gemini-flash-latest` via **Gemini Developer API** (AI Studio)
+  - ⚠️ Do NOT use Vertex AI / ADC / service account keys for LLM calls
+  - ⚠️ Do NOT use `gemini-2.5-flash` — retired, will 404
+  - Free tier on AI Studio covers Flash family. Pro models are paid-only.
+- **Voice (Live API):** `gemini-flash-latest` (confirm live model alias at https://ai.google.dev/gemini-api/docs/live-api)
+
+## ADK Configuration — Developer API Mode
+```python
+# The ONLY correct way to init ADK for this project:
+# Set env vars:  GOOGLE_API_KEY=<key>  GOOGLE_GENAI_USE_VERTEXAI=false
+# Then just use LlmAgent / SequentialAgent normally — ADK reads these env vars automatically.
+# NO google.cloud.aiplatform imports. NO ApplicationDefault(). NO service account keys.
+os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "false"  # or set in .env
+os.environ["GOOGLE_API_KEY"] = "<key from AI Studio>"
+```
 
 ## Google Cloud Project
 - **Project ID:** `lifesaver-501004`
-- **Region:** `us-central1`
-- **Auth model:** Application Default Credentials (ADC) via Cloud Run service account — NO floating API keys
+- **Used for:** Firestore, Calendar API, Gmail API, Firebase Auth — NOT for Vertex AI
+- **Firebase Admin SDK init:** Use `project_id` param directly — no ADC needed for Firestore locally
 
 ## Firebase
 - **Project:** `lifesaver-501004`
 - **Auth provider:** Google (signInWithPopup)
 - **authDomain:** `lifesaver-501004.firebaseapp.com`
 - **messagingSenderId:** `989807541983`
-- **Web config is in `frontend/.env.local` and `frontend/lib/firebase.ts` defaults**
 
-## Required Secrets (all via Secret Manager, never hardcoded)
-- `GOOGLE_OAUTH_CLIENT_ID` — from user
-- `GOOGLE_OAUTH_CLIENT_SECRET` — from user  
-- `TOKEN_ENCRYPTION_KEY` — generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`, store in Secret Manager
-- `VAPID_KEY` — from user, for FCM web push
-
-## ADK Version
-- Install: `pip install google-adk`
-- **Resolved version (June 2026): `google-adk==2.3.0`** — do NOT pin to `1.0.0` (that's outdated)
-- Before implementing any ADK integration, fetch current docs: https://google.github.io/adk-docs/
-- Before implementing voice/streaming, read: https://google.github.io/adk-docs/streaming/
-
-## OAuth Scopes for offline/background access
-- Calendar: `https://www.googleapis.com/auth/calendar`
-- Gmail: `https://www.googleapis.com/auth/gmail.readonly`
-- Flow: authorization-code with `access_type=offline&prompt=consent`
-- Callback: `POST /auth/google/callback` on backend
-- Storage: `users/{uid}/oauth_tokens/google_workspace` — **backend-only via Admin SDK**
-
-## Firestore Security Hardcoded Rules
-- `users/{uid}/oauth_tokens/**` → DENY ALL client reads/writes
-- Cross-user access → DENY everywhere
-- Backend uses Admin SDK (bypasses rules)
-
-## Environment Variable Names
+## Environment Variables
 ```
-GOOGLE_CLOUD_PROJECT
-GOOGLE_CLOUD_LOCATION=us-central1
-GOOGLE_GENAI_USE_VERTEXAI=true
-GOOGLE_OAUTH_CLIENT_ID
-GOOGLE_OAUTH_CLIENT_SECRET
-TOKEN_ENCRYPTION_KEY
-NEXT_PUBLIC_BACKEND_URL
-NEXT_PUBLIC_FIREBASE_API_KEY
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-NEXT_PUBLIC_FIREBASE_PROJECT_ID
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-NEXT_PUBLIC_FIREBASE_APP_ID
-NEXT_PUBLIC_FIREBASE_VAPID_KEY
+# Backend
+GOOGLE_CLOUD_PROJECT=lifesaver-501004
+GOOGLE_API_KEY=<from AI Studio>
+GOOGLE_GENAI_USE_VERTEXAI=false
+GOOGLE_OAUTH_CLIENT_ID=<oauth client id>
+GOOGLE_OAUTH_CLIENT_SECRET=<oauth client secret>
+TOKEN_ENCRYPTION_KEY=<fernet key>
+CRON_SECRET=<random secret for cron endpoint>
+FRONTEND_URL=<app hosting url>
+BACKEND_URL=<render service url>
+SKIP_SCHEDULER_AUTH=true  # local dev only
+
+# Frontend
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDwa6MA2U3NMJ7U7row9lQhiNf1p0bM450
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=lifesaver-501004.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=lifesaver-501004
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=lifesaver-501004.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=989807541983
+NEXT_PUBLIC_FIREBASE_APP_ID=1:989807541983:web:27b4554391851ce2f8336a
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=BFQVEbEoAb27g19_BcXOebvDg4F8r2m5nnCj_0_9T7gl5WsYYe41Q-vWwfp7JRvIWuCfcWOwV-8ou4xyJD7GDl0
+NEXT_PUBLIC_BACKEND_URL=<render service url>
 ```
+
+## Deployment Stack
+- **Frontend:** Firebase App Hosting (unchanged)
+- **Backend:** Render free tier (Docker container)
+- **Cron:** cron-job.org → POST /internal/monitor-sweep with `X-Cron-Secret` header
+
+## Cron Endpoint Security
+- NOT Cloud Scheduler OIDC — replaced with shared secret
+- Header: `X-Cron-Secret: <CRON_SECRET env var>`
+- Local dev: set `SKIP_SCHEDULER_AUTH=true` to bypass
 
 ## What NOT to do
 - Never commit `.env` files or service-account JSON
-- Never invent placeholder values that silently "work" in demo mode
+- Never import `google.cloud.aiplatform` or use `credentials.ApplicationDefault()` for LLM calls
+- Never use `GOOGLE_GENAI_USE_VERTEXAI=true`
 - Never use `gemini-2.5-flash`
-- Never connect frontend microphone directly to Google's Live API
+- Never connect frontend mic directly to Google's Live API
 - Never store raw refresh tokens — always encrypt with TOKEN_ENCRYPTION_KEY
+
+## ADK Version
+- Installed: `google-adk==2.3.0`
+- Docs: https://google.github.io/adk-docs/

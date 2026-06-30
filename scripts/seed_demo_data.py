@@ -28,11 +28,13 @@ from firebase_admin import credentials, firestore
 
 def init_firebase():
     if not firebase_admin._apps:
-        cred = credentials.ApplicationDefault()
-        firebase_admin.initialize_app(
-            cred,
-            {"projectId": os.environ["GOOGLE_CLOUD_PROJECT"]},
-        )
+        project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "lifesaver-501004")
+        sa_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        if sa_path and os.path.exists(sa_path):
+            cred = credentials.Certificate(sa_path)
+        else:
+            cred = credentials.ApplicationDefault()
+        firebase_admin.initialize_app(cred, {"projectId": project_id})
     return firestore.client()
 
 
