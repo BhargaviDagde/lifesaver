@@ -23,22 +23,22 @@ Most productivity apps remind you. Life Saver **acts**. It watches your calendar
 ## 📸 Screenshots
 
 ### Sign In
-![Sign In](docs/screenshots/login.png)
+![Sign In](docs/screenshots/Sign%20In.png)
 
 *Clean, minimal login. Calendar and Gmail access is explained plainly — what you get, not what permission scope is being requested.*
 
 ### Dashboard — Today's Priorities
-![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard](docs/screenshots/Dashboard.png)
 
 *Every task is scored, scheduled, and reasoned. The AI priority bar shows exactly how urgent and important each task is. Email-detected tasks surface for one-tap approval.*
 
 ### Onboarding
-![Onboarding](docs/screenshots/onboarding.png)
+![Onboarding](docs/screenshots/Onboarding.png)
 
 *Life Saver sets itself up. Two clicks to connect your calendar and email, one screen to set work hours.*
 
 ### Insights — Habit Tracking
-![Insights](docs/screenshots/insights.png)
+![Insights](docs/screenshots/Insights.png)
 
 *Consistency chart, streak tracking, category breakdown, and AI-generated coaching — pattern-noticing, not failure scoring.*
 
