@@ -13,9 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace(isNewUser ? "/onboarding" : "/dashboard");
-    }
+    if (!loading && user) router.replace(isNewUser ? "/onboarding" : "/dashboard");
   }, [user, loading, isNewUser, router]);
 
   async function handleGoogleSignIn() {
@@ -35,72 +33,64 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E2A3A] to-[#2D3F55]">
-        <div className="w-6 h-6 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+      <main className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="w-5 h-5 border-2 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1E2A3A] via-[#243447] to-[#1E2A3A] px-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#2D7DD2]/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#38B2AC]/10 rounded-full blur-3xl" />
+    <main className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4 relative overflow-hidden">
+      {/* Subtle background glow */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#2563eb]/5 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-sm relative">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#2D7DD2] to-[#38B2AC] mb-5 shadow-lg shadow-[#2D7DD2]/30">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-[#14b8a6] to-[#2563eb] mb-5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Life Saver</h1>
-          <p className="text-[#94A3B8] mt-2 text-sm leading-relaxed">
-            Your AI companion that acts<br />before you have to ask.
-          </p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Life Saver</h1>
+          <p className="text-[#555] mt-1.5 text-sm">Your AI companion that acts before you have to ask.</p>
         </div>
 
-        {/* Card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-xl">
-          {/* Feature bullets */}
-          <div className="space-y-2.5 mb-6">
-            {[
-              ["📅", "Schedules tasks automatically"],
-              ["👁", "Reschedules when deadlines shift"],
-              ["📬", "Spots deadlines in your email"],
-            ].map(([icon, text]) => (
-              <div key={text} className="flex items-center gap-2.5">
-                <span className="text-base" aria-hidden>{icon}</span>
-                <span className="text-[#CBD5E1] text-sm">{text}</span>
-              </div>
-            ))}
-          </div>
+        {/* Features */}
+        <div className="space-y-2.5 mb-8">
+          {[
+            ["◷", "Schedules tasks automatically"],
+            ["◉", "Reschedules when deadlines shift"],
+            ["✉", "Spots deadlines in your email"],
+          ].map(([icon, text]) => (
+            <div key={text} className="flex items-center gap-3">
+              <span className="w-6 h-6 rounded-md bg-[#141414] border border-[#2a2a2a] flex items-center justify-center text-[#2563eb] text-xs flex-shrink-0">{icon}</span>
+              <span className="text-[#666] text-sm">{text}</span>
+            </div>
+          ))}
+        </div>
 
-          <button
-            onClick={handleGoogleSignIn}
-            disabled={signingIn}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-[#1E2A3A] font-semibold text-sm hover:bg-[#F7F9FC] transition-colors shadow-sm disabled:opacity-60"
-            aria-label="Sign in with Google"
-          >
-            {signingIn ? (
-              <><div className="w-4 h-4 border-2 border-[#2D7DD2] border-t-transparent rounded-full animate-spin" />Signing in…</>
-            ) : (
-              <><GoogleIcon />Continue with Google</>
-            )}
-          </button>
-
-          {error && (
-            <p role="alert" className="mt-3 text-xs text-red-400 text-center">{error}</p>
+        {/* Sign in */}
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={signingIn}
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-white text-[#0a0a0a] font-semibold text-sm hover:bg-[#f0f0f0] transition-colors disabled:opacity-60 shadow-lg"
+          aria-label="Sign in with Google"
+        >
+          {signingIn ? (
+            <><div className="w-4 h-4 border-2 border-[#2563eb] border-t-transparent rounded-full animate-spin" />Signing in…</>
+          ) : (
+            <><GoogleIcon />Continue with Google</>
           )}
+        </button>
 
-          <p className="mt-4 text-[10px] text-[#64748B] text-center leading-relaxed">
-            Calendar &amp; Gmail access requested in the next step.
-            <br />Your data is never sold or shared.
-          </p>
-        </div>
+        {error && <p role="alert" className="mt-3 text-xs text-[#f87171] text-center">{error}</p>}
+
+        <p className="mt-5 text-[10px] text-[#333] text-center leading-relaxed">
+          Calendar &amp; Gmail access requested in the next step.<br />Your data is never sold or shared.
+        </p>
       </div>
     </main>
   );

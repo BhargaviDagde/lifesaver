@@ -4,22 +4,22 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { subscribeActivity, ActivityEntry } from "@/lib/tasks";
 
-const AGENT_META: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  intake:      { label: "Intake",      color: "text-[#2D7DD2]",  bg: "bg-[#2D7DD2]/10",  icon: "📥" },
-  prioritizer: { label: "Prioritizer", color: "text-purple-700", bg: "bg-purple-50",      icon: "🎯" },
-  scheduler:   { label: "Scheduler",   color: "text-[#38B2AC]",  bg: "bg-[#38B2AC]/10",  icon: "📅" },
-  monitor:     { label: "Monitor",     color: "text-[#B8800F]",  bg: "bg-[#F6AE2D]/10",  icon: "👁" },
-  insights:    { label: "Insights",    color: "text-green-700",  bg: "bg-green-50",       icon: "💡" },
+const AGENT_META: Record<string, { label: string; color: string; dot: string; icon: string }> = {
+  intake:      { label: "Intake",      color: "text-[#60a5fa]", dot: "bg-[#2563eb]", icon: "↓" },
+  prioritizer: { label: "Prioritizer", color: "text-[#a78bfa]", dot: "bg-[#7c3aed]", icon: "↑" },
+  scheduler:   { label: "Scheduler",   color: "text-[#34d399]", dot: "bg-[#059669]", icon: "◷" },
+  monitor:     { label: "Monitor",     color: "text-[#fb923c]", dot: "bg-[#ea580c]", icon: "◉" },
+  insights:    { label: "Insights",    color: "text-[#4ade80]", dot: "bg-[#16a34a]", icon: "✦" },
 };
 
 function timeAgo(date: Date): string {
-  const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "yesterday";
+  const m = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "yesterday";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -30,68 +30,55 @@ export default function ActivityPage() {
 
   useEffect(() => {
     if (!user) return;
-    const unsub = subscribeActivity(user.uid, (entries) => {
+    return subscribeActivity(user.uid, (entries) => {
       setLog(entries);
       setLoading(false);
     });
-    return unsub;
   }, [user]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-[#1E2A3A]">Activity</h1>
-        <p className="text-[#6B7A8D] text-sm mt-0.5">
-          Everything Life Saver did, and why.
-        </p>
+        <h1 className="text-2xl font-bold text-white">Activity</h1>
+        <p className="text-[#555] text-sm mt-0.5">Everything Life Saver did, and why.</p>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="w-6 h-6 border-2 border-[#2D7DD2] border-t-transparent rounded-full animate-spin" aria-label="Loading activity" />
+          <div className="w-5 h-5 border-2 border-[#2563eb] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : log.length === 0 ? (
-        <div className="rounded-card border border-dashed border-[#E2E8F0] bg-white text-center py-12">
-          <p className="font-medium text-[#1E2A3A]">No activity yet.</p>
-          <p className="text-[#6B7A8D] text-sm mt-1 max-w-sm mx-auto">
-            Add a task and the agents will get to work. Their reasoning will appear
-            here as a plain-language log — so you always know what changed and why.
-          </p>
+        <div className="border border-dashed border-[#2a2a2a] rounded-xl text-center py-12">
+          <p className="text-[#555] text-sm">No activity yet.</p>
+          <p className="text-[#333] text-xs mt-1 max-w-xs mx-auto">Add a task and the agents will get to work. Their reasoning appears here.</p>
         </div>
       ) : (
-        <ol className="space-y-3" aria-label="Agent activity log">
+        <div className="space-y-2">
           {log.map((entry) => {
-            const meta = AGENT_META[entry.agent] ?? {
-              label: entry.agent, color: "text-[#6B7A8D]", bg: "bg-[#6B7A8D]/10", icon: "🤖",
-            };
+            const meta = AGENT_META[entry.agent] ?? { label: entry.agent, color: "text-[#555]", dot: "bg-[#333]", icon: "·" };
             return (
-              <li key={entry.id} className="bg-white rounded-card shadow-card border border-[#E2E8F0] flex gap-4 px-4 py-3.5 animate-fade-in">
+              <article key={entry.id} className="bg-[#141414] border border-[#2a2a2a] rounded-xl px-4 py-3.5 flex gap-3 animate-fade-in hover:border-[#333] transition-colors">
                 {/* Icon */}
-                <div className={`flex-shrink-0 w-9 h-9 rounded-full ${meta.bg} flex items-center justify-center text-base`} aria-hidden>
-                  {meta.icon}
+                <div className="flex-shrink-0 pt-0.5">
+                  <div className={`w-6 h-6 rounded-lg ${meta.dot} flex items-center justify-center text-white text-[11px] font-bold`} aria-hidden>
+                    {meta.icon}
+                  </div>
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  {/* Agent + time */}
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs font-semibold uppercase tracking-wide ${meta.color}`}>
-                      {meta.label}
-                    </span>
-                    <span className="text-[#6B7A8D] text-xs">{timeAgo(entry.createdAt)}</span>
+                    <span className={`text-[11px] font-semibold uppercase tracking-wide ${meta.color}`}>{meta.label}</span>
+                    <span className="text-[#333] text-[11px]">{timeAgo(entry.createdAt)}</span>
                   </div>
-
-                  {/* What happened */}
-                  <p className="text-sm font-medium text-[#1E2A3A]">{entry.action}</p>
-
-                  {/* Why */}
+                  <p className="text-sm text-[#ccc] font-medium">{entry.action}</p>
                   {entry.reasoning && (
-                    <p className="text-xs text-[#6B7A8D] mt-1 leading-relaxed">{entry.reasoning}</p>
+                    <p className="text-xs text-[#444] mt-1 leading-relaxed">{entry.reasoning}</p>
                   )}
                 </div>
-              </li>
+              </article>
             );
           })}
-        </ol>
+        </div>
       )}
     </div>
   );
