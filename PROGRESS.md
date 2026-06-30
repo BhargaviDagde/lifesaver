@@ -4,7 +4,75 @@ Read this at the start of every session to know exactly where things stand.
 
 ---
 
-## Current Phase: Phase 0 — Skeleton & Deploy Pipeline (SCAFFOLD COMPLETE — awaiting credentials to deploy)
+## Current Phase: Phase 4 — Gmail Passive Intake
+
+---
+
+## Completed
+
+### Phase 0 — Scaffold (session 1)
+- [x] Git repo, SPEC.md, CLAUDE.md, PROGRESS.md
+- [x] Full project scaffold (52 files)
+- [x] .gitignore, .env.example
+
+### Phase 1 — Auth & Task Management
+- [x] Firebase Auth Google sign-in
+- [x] Auth context + auth guard on all app pages
+- [x] Firestore user profile creation on first sign-in
+- [x] Real-time task list via onSnapshot
+- [x] Task CRUD (add/edit/complete/delete)
+- [x] TaskCard component with status badges, priority reasoning
+- [x] Activity feed (live from Firestore)
+
+### Phase 2 — Core Agent Pipeline
+- [x] ADK SequentialAgent: Intake → Prioritizer → Scheduler
+- [x] LLM backend: Groq (Llama 3.3 70B) via LiteLLM (Gemini quota unavailable)
+- [x] Pipeline tested end-to-end: "essay due Friday, 3 hours" → title/deadline/priority/slot
+- [x] Firestore Admin SDK connected (service account key)
+- [x] Insights Agent + /insights route
+- [x] Stack changes: Vertex AI → Gemini Dev API → Groq, Cloud Run → Render, Cloud Scheduler → cron-job.org
+
+### Phase 3 — Monitor Agent ⭐
+- [x] Monitor Agent: sweeps all users, detects at-risk tasks
+- [x] LLM generates calm, specific notification copy
+- [x] Calendar reschedule attempt on at-risk tasks
+- [x] Task status updated to at_risk in Firestore
+- [x] Activity log entry written (visible in /activity feed)
+- [x] FCM token registration (frontend + backend)
+- [x] Service worker for background push notifications
+- [x] Tested: task flagged, status changed, activity log written ✅
+
+---
+
+## Not Yet Done
+- [ ] Phase 4 — Gmail Passive Intake
+- [ ] Phase 5 — Voice
+- [ ] Phase 6 — Polish + Deploy
+
+---
+
+## Deployed URLs
+- Frontend: _(not yet deployed — running locally at localhost:3000)_
+- Backend: _(not yet deployed — running locally at localhost:8080)_
+
+---
+
+## Decisions & Deviations from Spec
+
+| Decision | Reason |
+|---|---|
+| Groq (Llama 3.3 70B) via LiteLLM instead of Gemini | Google Cloud billing unavailable; Groq free tier works without any billing |
+| Render instead of Cloud Run | No billing required |
+| cron-job.org + shared secret instead of Cloud Scheduler OIDC | No billing required; functionally equivalent |
+| Scheduler Agent: no ADK tools, LLM reasons over pre-fetched busy blocks | Groq/Llama tool-call format incompatible with ADK's function-calling schema |
+
+---
+
+## Session Log
+- **Session 1:** Full scaffold committed.
+- **Session 2:** Credentials wired, deps installed, stack change to Groq/Render/cron-job.org.
+- **Session 3:** Phase 1 (auth + CRUD) + Phase 2 (agent pipeline) working end-to-end.
+- **Session 4:** Phase 3 (Monitor Agent) complete and tested. At-risk detection, activity log, FCM registration all working.
 
 ---
 
